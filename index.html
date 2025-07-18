@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HorizanOS - WebOS Demo</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background-image: url('https://images.unsplash.com/photo-1620121692029-d088224ddc74?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bWFjJTIwb3MlMjB3YWxscGFwZXJ8ZW58MHx8MHx8fDA%3D');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+  </style>
+</head>
+<body>
+  <div class="clock-center" id="clock-center"></div>
+  <div id="desktop"></div>
+  <div id="dock">
+    <button class="dock-icon" data-app="notes"><img src="https://static.vecteezy.com/system/resources/previews/014/641/800/non_2x/creative-design-icon-of-notepad-vector.jpg" alt="Notes"/></button>
+    <button class="dock-icon" data-app="calculator"><img src="https://static.vecteezy.com/system/resources/previews/036/878/318/non_2x/calculator-icon-logo-design-template-vector.jpg" alt="Calculator"/></button>
+    <button class="dock-icon" data-app="settings"><img src="https://t4.ftcdn.net/jpg/01/14/65/83/360_F_114658310_nCqKux6YnNCziwjc7AFVt5Tieeo7oBLS.jpg" alt="Settings"/></button>
+    <button class="dock-icon" data-app="arcade"><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSvgwR2WGUgNyQc8QkqAovihSHvrbbsyzPe42_ptgiLGx1SvePKOMxJ1sMo2gctMU4SJ2M&usqp=CAU" alt="Arcade"/></button>
+  </div>
+  <div id="survey-popup" class="survey-popup" style="display:none;">
+    <div class="survey-content">
+      <h2>Bạn đang sử dụng thiết bị nào?</h2>
+      <button id="choose-mobile">Thiết bị di động</button>
+      <button id="choose-pc">Máy tính</button>
+    </div>
+  </div>
+  <script src="script.js"></script>
+  <script>
+    function updateClock() {
+      const el = document.getElementById('clock-center');
+      const now = new Date();
+      const h = now.getHours().toString().padStart(2, '0');
+      const m = now.getMinutes().toString().padStart(2, '0');
+      const dateStr = now.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      el.innerHTML = `${h}:${m}<span class='clock-date'>${dateStr}</span>`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Hiển thị popup khảo sát khi vào trang
+    window.addEventListener('DOMContentLoaded', function() {
+      if (!localStorage.getItem('horizanOS_mode')) {
+        document.getElementById('survey-popup').style.display = 'flex';
+      } else {
+        document.body.classList.toggle('mobile-mode', localStorage.getItem('horizanOS_mode') === 'mobile');
+      }
+      document.getElementById('choose-mobile').onclick = function() {
+        document.body.classList.add('mobile-mode');
+        localStorage.setItem('horizanOS_mode', 'mobile');
+        document.getElementById('survey-popup').style.display = 'none';
+      };
+      document.getElementById('choose-pc').onclick = function() {
+        document.body.classList.remove('mobile-mode');
+        localStorage.setItem('horizanOS_mode', 'pc');
+        document.getElementById('survey-popup').style.display = 'none';
+      };
+    });
+  </script>
+</body>
+</html> 
