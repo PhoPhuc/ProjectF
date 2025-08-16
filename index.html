@@ -1,67 +1,971 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>HorizanOS - WebOS Demo</title>
-  <link rel="stylesheet" href="style.css"/>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    body {
-      background-image: url('https://images.unsplash.com/photo-1620121692029-d088224ddc74?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bWFjJTIwb3MlMjB3YWxscGFwZXJ8ZW58MHx8MHx8fDA%3D');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đồng Hồ Học Tập | Focus Timer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <style>
+        /* CSS Variables for theming */
+        :root {
+            --bg-color: #333842;
+            --card-color: #333842;
+            --shadow-light: #3b414d;
+            --shadow-dark: #2b2f37;
+            --text-primary: #e5e7eb; /* gray-200 */
+            --text-secondary: #9ca3af; /* gray-400 */
+            --text-accent: #6b7280; /* gray-500 */
+            --text-highlight: #34d399; /* emerald-400 */
+        }
+
+        body.theme-black {
+            --bg-color: #000000;
+            --card-color: #111111;
+            --shadow-light: #222222;
+            --shadow-dark: #000000;
+        }
+
+        body.theme-transparent-light {
+            --bg-color: rgba(51, 56, 66, 0.3);
+            --card-color: rgba(51, 56, 66, 0.4);
+            --shadow-light: rgba(59, 65, 77, 0.3);
+            --shadow-dark: rgba(43, 47, 55, 0.3);
+        }
+
+        body.theme-transparent-full {
+            --bg-color: rgba(51, 56, 66, 0.1);
+            --card-color: rgba(51, 56, 66, 0.2);
+            --shadow-light: rgba(59, 65, 77, 0.2);
+            --shadow-dark: rgba(43, 47, 55, 0.2);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            transition: background-image 0.5s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #bg-overlay {
+            background-color: var(--bg-color);
+            transition: background-color 0.3s ease, opacity 0.3s ease;
+            mix-blend-mode: multiply;
+        }
+        .dark-neumorphism-card {
+            background: var(--card-color);
+            border-radius: 30px;
+            box-shadow: 12px 12px 24px var(--shadow-dark), -12px -12px 24px var(--shadow-light);
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .dark-neumorphism-button {
+            background: var(--card-color);
+            border-radius: 12px;
+            box-shadow: 5px 5px 10px var(--shadow-dark), -5px -5px 10px var(--shadow-light);
+            transition: all 0.1s ease-in-out;
+            color: var(--text-secondary);
+        }
+        .dark-neumorphism-button:active, .dark-neumorphism-button.active {
+            box-shadow: inset 5px 5px 10px var(--shadow-dark), inset -5px -5px 10px var(--shadow-light);
+            color: var(--text-highlight);
+        }
+        .dark-neumorphism-button:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            box-shadow: inset 5px 5px 10px var(--shadow-dark), inset -5px -5px 10px var(--shadow-light);
+        }
+        
+        /* Loop button active state */
+        .dark-neumorphism-button.active {
+            color: var(--text-highlight) !important;
+            box-shadow: inset 5px 5px 10px var(--shadow-dark), inset -5px -5px 10px var(--shadow-light);
+        }
+        
+        /* Theme settings buttons */
+        .theme-settings-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .theme-settings-btn.selected {
+            border-color: var(--text-highlight);
+            color: var(--text-highlight);
+            box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
+        }
+        .dark-neumorphism-inset {
+            background: var(--card-color);
+            border-radius: 20px;
+            box-shadow: inset 7px 7px 14px var(--shadow-dark), inset -7px -7px 14px var(--shadow-light);
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        /* Modal styles */
+        .modal-backdrop {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(5px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .modal-backdrop.visible { opacity: 1; pointer-events: auto; }
+        .modal-content { transform: scale(0.9); transition: transform 0.3s ease; }
+        .modal-backdrop.visible .modal-content { transform: scale(1); }
+        .theme-btn.selected { border-color: var(--text-highlight); }
+        /* Custom toggle switch */
+        .toggle-checkbox:checked { background-color: var(--text-highlight); }
+        .toggle-checkbox:checked + .toggle-label { background-color: var(--text-highlight); }
+        
+        /* Music player styles */
+        #playlist::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #playlist::-webkit-scrollbar-track {
+            background: var(--shadow-dark);
+            border-radius: 3px;
+        }
+        
+        #playlist::-webkit-scrollbar-thumb {
+            background: var(--text-accent);
+            border-radius: 3px;
+        }
+        
+        #playlist::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+        
+        .playlist-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+    </style>
 </head>
 <body>
-  <div class="clock-center" id="clock-center"></div>
-  <div id="desktop"></div>
-  <div id="dock">
-    <button class="dock-icon" data-app="notes"><img src="https://static.vecteezy.com/system/resources/previews/014/641/800/non_2x/creative-design-icon-of-notepad-vector.jpg" alt="Notes"/></button>
-    <button class="dock-icon" data-app="calculator"><img src="https://static.vecteezy.com/system/resources/previews/036/878/318/non_2x/calculator-icon-logo-design-template-vector.jpg" alt="Calculator"/></button>
-    <button class="dock-icon" data-app="settings"><img src="https://t4.ftcdn.net/jpg/01/14/65/83/360_F_114658310_nCqKux6YnNCziwjc7AFVt5Tieeo7oBLS.jpg" alt="Settings"/></button>
-    <button class="dock-icon" data-app="arcade"><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSvgwR2WGUgNyQc8QkqAovihSHvrbbsyzPe42_ptgiLGx1SvePKOMxJ1sMo2gctMU4SJ2M&usqp=CAU" alt="Arcade"/></button>
-  </div>
-  <div id="survey-popup" class="survey-popup" style="display:none;">
-    <div class="survey-content">
-      <h2>Bạn đang sử dụng thiết bị nào?</h2>
-      <button id="choose-mobile">Thiết bị di động</button>
-      <button id="choose-pc">Máy tính</button>
-    </div>
-  </div>
-  <script src="script.js"></script>
-  <script>
-    function updateClock() {
-      const el = document.getElementById('clock-center');
-      const now = new Date();
-      const h = now.getHours().toString().padStart(2, '0');
-      const m = now.getMinutes().toString().padStart(2, '0');
-      const dateStr = now.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-      el.innerHTML = `${h}:${m}<span class='clock-date'>${dateStr}</span>`;
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
+    <div id="bg-overlay" class="fixed inset-0 -z-10"></div>
+    <div class="min-h-screen w-full flex items-center justify-center p-4 relative z-10">
+        <main class="dark-neumorphism-card w-full max-w-4xl p-6 md:p-8 relative">
+            <!-- Settings Switcher -->
+            <div class="absolute top-5 right-5 flex items-center space-x-3 z-10">
+                <button id="music-btn" title="Âm nhạc" class="dark-neumorphism-button p-1.5 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.793L4.5 14H2a1 1 0 01-1-1V7a1 1 0 011-1h2.5l3.883-2.717zM12.5 4.5a1 1 0 011 0v11a1 1 0 11-2 0v-11a1 1 0 011 0zM12.5 4.5a1 1 0 011 0v11a1 1 0 11-2 0v-11a1 1 0 011 0zM16.5 6.5a1 1 0 011 0v7a1 1 0 11-2 0v-7a1 1 0 011 0z" clip-rule="evenodd" /></svg>
+                </button>
+                <button id="settings-btn" title="Cài đặt" class="dark-neumorphism-button p-1.5 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01-.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
+                </button>
+            </div>
 
-    // Hiển thị popup khảo sát khi vào trang
-    window.addEventListener('DOMContentLoaded', function() {
-      if (!localStorage.getItem('horizanOS_mode')) {
-        document.getElementById('survey-popup').style.display = 'flex';
-      } else {
-        document.body.classList.toggle('mobile-mode', localStorage.getItem('horizanOS_mode') === 'mobile');
-      }
-      document.getElementById('choose-mobile').onclick = function() {
-        document.body.classList.add('mobile-mode');
-        localStorage.setItem('horizanOS_mode', 'mobile');
-        document.getElementById('survey-popup').style.display = 'none';
-      };
-      document.getElementById('choose-pc').onclick = function() {
-        document.body.classList.remove('mobile-mode');
-        localStorage.setItem('horizanOS_mode', 'pc');
-        document.getElementById('survey-popup').style.display = 'none';
-      };
-    });
-  </script>
+            <div id="main-grid" class="grid grid-cols-1 md:grid-cols-2 gap-8 transition-all duration-300">
+                <!-- Left Column: Timer and Controls -->
+                <div id="timer-column" class="flex flex-col space-y-4">
+                    <div class="h-7 text-center">
+                        <h2 id="current-method-display" class="text-lg font-bold" style="color: var(--text-highlight);"></h2>
+                    </div>
+                    <div class="dark-neumorphism-inset w-full h-48 p-4 flex flex-col justify-between">
+                        <div class="flex justify-between items-center text-xs font-semibold" style="color: var(--text-accent);">
+                            <span id="current-date"></span>
+                            <span id="real-time-clock"></span>
+                        </div>
+                        <div class="flex-grow flex items-center justify-center">
+                            <h1 id="timer-display" class="text-7xl md:text-8xl font-black tracking-tighter -mt-4" style="color: var(--text-primary);">25:00</h1>
+                        </div>
+                    </div>
+                    <div class="flex justify-start pt-2">
+                        <div class="flex space-x-3">
+                            <button id="toggle-btn" class="dark-neumorphism-button p-3 flex justify-center items-center"><svg id="play-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-400 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></button>
+                            <button id="skip-btn" class="dark-neumorphism-button p-3 flex justify-center items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg></button>
+                            <button id="reset-btn" class="dark-neumorphism-button p-3 flex justify-center items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M4 4l16 16" /></svg></button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Right Column: Method Selection -->
+                <div id="method-selection-column" class="flex flex-col space-y-6 mt-7">
+                    <h2 class="text-center font-medium mb-4" style="color: var(--text-secondary);">Chọn phương pháp</h2>
+                    <div id="presets" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+                    <div id="method-description" class="dark-neumorphism-inset p-4 flex-grow"><h3 id="description-title" class="font-bold text-lg mb-1" style="color: var(--text-primary);"></h3><p id="description-text" class="text-sm" style="color: var(--text-secondary);"></p></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Modals -->
+    <div id="notification-modal" class="modal-backdrop"><div class="modal-content dark-neumorphism-card p-8 rounded-2xl text-center space-y-4 max-w-xs w-full"><h3 id="modal-title" class="text-xl font-bold" style="color: var(--text-primary);"></h3><p id="modal-text" style="color: var(--text-secondary);"></p><button id="modal-close-btn" class="dark-neumorphism-button w-full py-2 font-semibold">Đóng</button></div></div>
+    <div id="settings-modal" class="modal-backdrop">
+        <div class="modal-content dark-neumorphism-card p-6 rounded-2xl space-y-6 max-w-2xl w-full">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold" style="color: var(--text-primary);">Cài đặt</h3>
+                <button id="settings-close-btn" class="dark-neumorphism-button rounded-full p-2">&times;</button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Left Column: General Settings -->
+                <div class="space-y-4">
+                    <h4 class="text-lg font-semibold" style="color: var(--text-primary);">Cài đặt chung</h4>
+                    
+                    <div class="flex items-center justify-between">
+                        <label for="keep-screen-on" class="font-semibold" style="color: var(--text-secondary);">Giữ màn hình sáng</label>
+                        <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                            <input type="checkbox" name="toggle" id="keep-screen-on" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                            <label for="keep-screen-on" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="timer-size-slider" class="font-semibold" style="color: var(--text-secondary);">Cỡ chữ đồng hồ</label>
+                        <input id="timer-size-slider" type="range" min="3" max="12" step="0.1" value="7" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    
+                    <div>
+                        <label for="bg-opacity-slider" class="font-semibold" style="color: var(--text-secondary);">Độ tối nền (Opacity)</label>
+                        <input id="bg-opacity-slider" type="range" min="0" max="1" step="0.05" value="1" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </div>
+                
+                <!-- Right Column: Theme & Background -->
+                <div class="space-y-4">
+                    <h4 class="text-lg font-semibold" style="color: var(--text-primary);">Giao diện & Nền</h4>
+                    
+                    <div>
+                        <label class="font-semibold" style="color: var(--text-secondary);">Chủ đề</label>
+                        <div class="grid grid-cols-2 gap-2 mt-2">
+                            <button id="theme-gray-settings-btn" class="theme-settings-btn dark-neumorphism-button p-3 text-sm font-semibold" data-theme="gray">
+                                <div class="w-4 h-4 rounded-full bg-[#333842] mx-auto mb-1"></div>
+                                <span>Xám</span>
+                            </button>
+                            <button id="theme-black-settings-btn" class="theme-settings-btn dark-neumorphism-button p-3 text-sm font-semibold" data-theme="black">
+                                <div class="w-4 h-4 rounded-full bg-black mx-auto mb-1"></div>
+                                <span>Đen</span>
+                            </button>
+                            <button id="theme-transparent-light-settings-btn" class="theme-settings-btn dark-neumorphism-button p-3 text-sm font-semibold" data-theme="transparent-light">
+                                <div class="w-4 h-4 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 mx-auto mb-1"></div>
+                                <span>Trong suốt nhẹ</span>
+                            </button>
+                            <button id="theme-transparent-full-settings-btn" class="theme-settings-btn dark-neumorphism-button p-3 text-sm font-semibold" data-theme="transparent-full">
+                                <div class="w-4 h-4 rounded-full bg-gradient-to-br from-white to-gray-300 mx-auto mb-1"></div>
+                                <span>Trong suốt hoàn toàn</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="font-semibold" style="color: var(--text-secondary);">Hình nền có sẵn</label>
+                        <div id="bg-presets" class="grid grid-cols-3 gap-2 mt-2"></div>
+                    </div>
+                    
+                    <div>
+                        <label for="custom-bg-url" class="font-semibold" style="color: var(--text-secondary);">Link hình nền tùy chỉnh</label>
+                        <div class="flex space-x-2 mt-1">
+                            <input id="custom-bg-url" type="text" placeholder="Dán link ảnh vào đây" class="flex-grow p-2 rounded-lg dark-neumorphism-button focus:outline-none">
+                            <button id="set-custom-bg" class="dark-neumorphism-button px-4 font-semibold">OK</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+     
+           <!-- Music Modal -->
+      <div id="music-modal" class="modal-backdrop">
+          <div class="modal-content dark-neumorphism-card p-6 rounded-2xl space-y-6 max-w-4xl w-full">
+              <div class="flex justify-between items-center">
+                  <h3 class="text-xl font-bold" style="color: var(--text-primary);">Âm nhạc</h3>
+                  <button id="music-close-btn" class="dark-neumorphism-button rounded-full p-2">&times;</button>
+              </div>
+              
+              <!-- Two Column Layout -->
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <!-- Left Column: Track Info and Controls -->
+                  <div class="space-y-6">
+                      <!-- Current Track Info -->
+                      <div class="text-center space-y-3">
+                          <div id="current-track-art" class="w-32 h-32 mx-auto rounded-lg bg-cover bg-center dark-neumorphism-inset"></div>
+                          <div>
+                              <h4 id="current-track-title" class="text-lg font-bold" style="color: var(--text-primary);">Chọn bài hát</h4>
+                              <p id="current-track-artist" class="text-sm" style="color: var(--text-secondary);">-</p>
+                          </div>
+                      </div>
+                      
+                      <!-- Music Controls -->
+                      <div class="flex justify-center items-center space-x-4">
+                          <button id="prev-btn" class="dark-neumorphism-button p-3 rounded-full">
+                              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                              </svg>
+                          </button>
+                          <button id="play-pause-btn" class="dark-neumorphism-button p-4 rounded-full">
+                              <svg id="play-icon-music" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <svg id="pause-icon-music" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                          </button>
+                          <button id="next-btn" class="dark-neumorphism-button p-3 rounded-full">
+                              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                              </svg>
+                          </button>
+                      </div>
+                      
+                      <!-- Additional Controls -->
+                      <div class="flex justify-center items-center space-x-3 mt-3">
+                          <button id="loop-btn" class="dark-neumorphism-button p-2 rounded-full" title="Nghe vĩnh viễn">
+                              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M4 4l16 16M9 7l3 3-3 3" />
+                              </svg>
+                          </button>
+                          <button id="download-btn" class="dark-neumorphism-button p-2 rounded-full" title="Tải bài hát">
+                              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                          </button>
+                      </div>
+                      
+                      <!-- Progress Bar -->
+                      <div class="space-y-2">
+                          <div class="flex justify-between text-xs" style="color: var(--text-secondary);">
+                              <span id="current-time">0:00</span>
+                              <span id="total-time">0:00</span>
+                          </div>
+                          <div class="w-full bg-gray-700 rounded-full h-2">
+                              <div id="progress-bar" class="bg-emerald-400 h-2 rounded-full transition-all duration-100" style="width: 0%"></div>
+                          </div>
+                      </div>
+                      
+                      <!-- Volume Control -->
+                      <div class="space-y-2">
+                          <label class="text-sm font-semibold" style="color: var(--text-secondary);">Âm lượng</label>
+                          <input id="volume-slider" type="range" min="0" max="100" value="50" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                      </div>
+                  </div>
+                  
+                  <!-- Right Column: Playlist -->
+                  <div class="space-y-2">
+                      <label class="text-sm font-semibold" style="color: var(--text-secondary);">Danh sách phát</label>
+                      <div id="playlist" class="max-h-96 overflow-y-auto space-y-2"></div>
+                  </div>
+              </div>
+          </div>
+      </div>
+
+    <script>
+        // --- DATA ---
+        const studyMethods = [
+            { id: 'pomodoro', name: 'Pomodoro', minutes: 25, breakMinutes: 5, longBreakMinutes: 15, sessionsForLongBreak: 4, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto mb-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.074 6.843 5 7.197 5c.423 0 .73.19 1.005.586l.002.002.002.002a.992.992 0 01.233.652c0 .22-.04.43-.123.62l-.08.17a.99.99 0 00-.202.63c0 .24.06.47.18.67l.116.195c.273.46.395.98.395 1.528a2.5 2.5 0 01-5 0c0-.54.113-1.04.323-1.49l.075-.16a.973.973 0 00-.19-1.065.973.973 0 00-1.065-.19zM9 4a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>`, description: 'Chu kỳ: 25 phút tập trung, 5 phút nghỉ ngắn. Sau 4 chu kỳ, nghỉ dài 15 phút. Tăng cường sự tập trung và ngăn ngừa kiệt sức.' },
+            { id: '5217', name: '52/17', minutes: 52, breakMinutes: 17, longBreakMinutes: 17, sessionsForLongBreak: 1, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto mb-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.414-1.414L11 9.586V6z" clip-rule="evenodd" /></svg>`, description: 'Làm việc 52 phút và nghỉ 17 phút. Dựa trên nghiên cứu về những người có năng suất làm việc cao nhất.' },
+            { id: 'focus90', name: 'Focus 90', minutes: 90, breakMinutes: 20, longBreakMinutes: 20, sessionsForLongBreak: 1, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto mb-1" viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 10-2 0v1.586l-1.293-1.293a1 1 0 10-1.414 1.414L7.586 6H6a1 1 0 100 2h1.586l-1.293 1.293a1 1 0 101.414 1.414L9 9.414V11a1 1 0 102 0V9.414l1.293 1.293a1 1 0 101.414-1.414L12.414 8H14a1 1 0 100-2h-1.586l1.293-1.293a1 1 0 00-1.414-1.414L11 4.586V3z" /><path d="M3.5 9a.5.5 0 01.5.5v2a.5.5 0 01-.5.5h-2a.5.5 0 01-.5-.5v-2a.5.5 0 01.5-.5h2zM18.5 9a.5.5 0 01.5.5v2a.5.5 0 01-.5.5h-2a.5.5 0 01-.5-.5v-2a.5.5 0 01.5-.5h2zM11.5 15a.5.5 0 01.5.5v2a.5.5 0 01-.5.5h-2a.5.5 0 01-.5-.5v-2a.5.5 0 01.5-.5h2z" /></svg>`, description: 'Tận dụng nhịp sinh học (Ultradian Rhythms) của não để làm việc sâu trong 90 phút, sau đó nghỉ 20-30 phút.' },
+            { id: 'flowtime', name: 'Flowtime', minutes: 60, breakMinutes: 10, longBreakMinutes: 15, sessionsForLongBreak: 1, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto mb-1" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1.5a1.5 1.5 0 000 3H15a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-.5a1.5 1.5 0 00-3 0V16a1 1 0 01-1 1H4a1 1 0 01-1-1v-3a1 1 0 011-1h1.5a1.5 1.5 0 000-3H4a1 1 0 01-1-1V5a1 1 0 011-1h3a1 1 0 001-1v-.5z" /></svg>`, description: 'Làm việc theo dòng chảy, không bị giới hạn bởi bộ đếm. Tự quyết định khi nào cần nghỉ. Phiên đề xuất: 60 phút.' },
+            { id: 'feynman', name: 'Feynman', minutes: 30, breakMinutes: 5, longBreakMinutes: 10, sessionsForLongBreak: 2, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto mb-1" viewBox="0 0 20 20" fill="currentColor"><path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 16c1.255 0 2.443-.29 3.5-.804V4.804zM14.5 4c1.255 0 2.443.29 3.5.804v10A7.969 7.969 0 0114.5 16c-1.255 0-2.443-.29-3.5-.804V4.804A7.968 7.968 0 0114.5 4z" /></svg>`, description: 'Học một chủ đề trong 30 phút, sau đó dành 5 phút để cố gắng giải thích lại nó một cách đơn giản nhất.' },
+            { id: 'eatthefrog', name: 'Ăn Con Ếch', minutes: 50, breakMinutes: 10, longBreakMinutes: 10, sessionsForLongBreak: 1, icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto mb-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M15.5 8a5.5 5.5 0 11-11 0 5.5 5.5 0 0111 0zM5.06 9.03a.5.5 0 01.4-.4h9.08a.5.5 0 01.4.4c.12.38.16.8.16 1.22 0 2.2-1.79 4-4 4s-4-1.8-4-4c0-.42.04-.84.16-1.22zM6.5 6.5A1.5 1.5 0 105 5a1.5 1.5 0 001.5 1.5zm7 0A1.5 1.5 0 1012 5a1.5 1.5 0 001.5 1.5z" clip-rule="evenodd" /></svg>`, description: 'Thực hiện nhiệm vụ khó khăn nhất vào đầu ngày. Chọn một phiên làm việc (ví dụ: 50 phút) và hoàn thành nó để tạo đà cho cả ngày.' },
+        ];
+        const bgPresets = [
+            'https://images.unsplash.com/photo-1618005182384-a83a89db3734?q=80&w=1974&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=2070&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1472552944129-b035e9ea3744?q=80&w=2070&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1519692933481-e14e2463f66d?q=80&w=2070&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1620121692029-d088224ddc74?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bWFjJTIwb3MlMjB3YWxscGFwZXJ8ZW58MHx8MHx8fDA%DD',
+            'https://preview.redd.it/og-every-mac-os-x-wallpaper-combined-into-one-recognize-v0-mjkbx3mjt9da1.jpg?auto=webp&s=ed39c7e2cd2a1c30cdea041986aea6606af06a18',
+            'https://www.skyweaver.net/images/media/wallpapers/wallpaper2.jpg'
+        ];
+
+                          // Music tracks data
+         const musicTracks = [
+             { 
+                 id: 1, 
+                 title: 'Our Date', 
+                 artist: 'Tobiitobes', 
+                 file: 'music/music-play/track-1.mp3',
+                 art: 'music/icon/track-1.png'
+             },
+             { 
+                 id: 2, 
+                 title: 'Head Empty', 
+                 artist: 'Tsundere Twintails', 
+                 file: 'music/music-play/track-2.mp3',
+                 art: 'music/icon/track-2.png'
+             },
+             { 
+                 id: 3, 
+                 title: 'Just two of us but...', 
+                 artist: 'J1gggs', 
+                 file: 'music/music-play/track-3.mp3',
+                 art: 'music/icon/track-3.png'
+             },
+             { 
+                 id: 4, 
+                 title: 'em day chang phai thuy kieu', 
+                 artist: 'yungtaki666', 
+                 file: 'music/music-play/track-4.mp3',
+                 art: 'music/icon/track-4.png'
+             },
+             { 
+                 id: 5, 
+                 title: 'super shy pluggb', 
+                 artist: 'Seyoungdagoat', 
+                 file: 'music/music-play/track-5.mp3',
+                 art: 'music/icon/track-5.png'
+             },
+             { 
+                 id: 6, 
+                 title: 'summers x jaydes', 
+                 artist: 'lain', 
+                 file: 'music/music-play/track-6.mp3',
+                 art: 'music/icon/track-6.png'
+             },
+             { 
+                 id: 7, 
+                 title: 'autumn! x summrs pluggnb', 
+                 artist: 'silo', 
+                 file: 'music/music-play/track-7.mp3',
+                 art: 'music/icon/track-7.png'
+             },
+             { 
+                 id: 8, 
+                 title: 'Tiso', 
+                 artist: 'briancj', 
+                 file: 'music/music-play/track-8.mp3',
+                 art: 'music/icon/track-8.png'
+             },
+             { 
+                 id: 9, 
+                 title: 'linga guli guli', 
+                 artist: 'Zachz Winner', 
+                 file: 'music/music-play/track-9.mp3',
+                 art: 'music/icon/track-9.png'
+             },
+             { 
+                 id: 10, 
+                 title: 'Dandadan OP', 
+                 artist: 'briancj', 
+                 file: 'music/music-play/track-10.mp3',
+                 art: 'music/icon/track-10.png'
+             },
+             { 
+                 id: 11, 
+                 title: 'Hikari', 
+                 artist: 'Clovis Reyes & VDYCD', 
+                 file: 'music/music-play/track-11.mp3',
+                 art: 'music/icon/track-11.png'
+             },
+             { 
+                 id: 12, 
+                 title: 'Rain', 
+                 artist: 'Lee', 
+                 file: 'music/music-play/track-12.mp3',
+                 art: 'music/icon/track-12.png'
+             },
+             { 
+                 id: 13, 
+                 title: 'Study With Me', 
+                 artist: 'Bauke Top', 
+                 file: 'music/music-play/track-13.mp3',
+                 art: 'music/icon/track-13.png'
+             },
+             { 
+                 id: 14, 
+                 title: 'Back to the Source', 
+                 artist: 'Team Astro', 
+                 file: 'music/music-play/track-14.mp3',
+                 art: 'music/icon/track-14.png'
+             }
+         ];
+
+        // --- DOM Elements ---
+        const dom = {
+            bgOverlay: document.getElementById('bg-overlay'),
+            musicBtn: document.getElementById('music-btn'),
+            settingsBtn: document.getElementById('settings-btn'),
+            mainGrid: document.getElementById('main-grid'),
+            timerColumn: document.getElementById('timer-column'),
+            methodSelectionColumn: document.getElementById('method-selection-column'),
+            timerDisplay: document.getElementById('timer-display'),
+            toggleBtn: document.getElementById('toggle-btn'),
+            playIcon: document.getElementById('play-icon'),
+            pauseIcon: document.getElementById('pause-icon'),
+            skipBtn: document.getElementById('skip-btn'),
+            resetBtn: document.getElementById('reset-btn'),
+            presetContainer: document.getElementById('presets'),
+            descriptionTitle: document.getElementById('description-title'),
+            descriptionText: document.getElementById('description-text'),
+            notificationModal: document.getElementById('notification-modal'),
+            modalTitle: document.getElementById('modal-title'),
+            modalText: document.getElementById('modal-text'),
+            modalCloseBtn: document.getElementById('modal-close-btn'),
+            settingsModal: document.getElementById('settings-modal'),
+            settingsCloseBtn: document.getElementById('settings-close-btn'),
+            keepScreenOnToggle: document.getElementById('keep-screen-on'),
+            timerSizeSlider: document.getElementById('timer-size-slider'),
+            bgOpacitySlider: document.getElementById('bg-opacity-slider'),
+            bgPresetContainer: document.getElementById('bg-presets'),
+            customBgUrlInput: document.getElementById('custom-bg-url'),
+            setCustomBgBtn: document.getElementById('set-custom-bg'),
+            themeGraySettingsBtn: document.getElementById('theme-gray-settings-btn'),
+            themeBlackSettingsBtn: document.getElementById('theme-black-settings-btn'),
+            themeTransparentLightSettingsBtn: document.getElementById('theme-transparent-light-settings-btn'),
+            themeTransparentFullSettingsBtn: document.getElementById('theme-transparent-full-settings-btn'),
+            currentMethodDisplay: document.getElementById('current-method-display'),
+            currentDateEl: document.getElementById('current-date'),
+            realTimeClockEl: document.getElementById('real-time-clock'),
+            musicModal: document.getElementById('music-modal'),
+            musicCloseBtn: document.getElementById('music-close-btn'),
+            currentTrackArt: document.getElementById('current-track-art'),
+            currentTrackTitle: document.getElementById('current-track-title'),
+            currentTrackArtist: document.getElementById('current-track-artist'),
+            playPauseBtn: document.getElementById('play-pause-btn'),
+            playIconMusic: document.getElementById('play-icon-music'),
+            pauseIconMusic: document.getElementById('pause-icon-music'),
+            prevBtn: document.getElementById('prev-btn'),
+            nextBtn: document.getElementById('next-btn'),
+            currentTime: document.getElementById('current-time'),
+            totalTime: document.getElementById('total-time'),
+            progressBar: document.getElementById('progress-bar'),
+            volumeSlider: document.getElementById('volume-slider'),
+            playlist: document.getElementById('playlist'),
+            loopBtn: document.getElementById('loop-btn'),
+            downloadBtn: document.getElementById('download-btn'),
+        };
+
+        // --- State ---
+        let state = {
+            timerInterval: null,
+            totalSeconds: 0,
+            isPaused: true,
+            currentMethod: studyMethods[0],
+            isWorkSession: true,
+            sessionCount: 0,
+            wakeLock: null,
+        };
+
+                 // Music player state
+         let musicState = {
+             currentTrackIndex: 0,
+             isPlaying: false,
+             audio: new Audio(),
+             volume: 0.24,
+             currentTime: 0,
+             duration: 0,
+             isLooping: false
+         };
+
+        // --- Sound ---
+        const synth = new Tone.Synth().toDestination();
+
+        // --- Functions ---
+        function updateDisplay() {
+            const minutes = Math.floor(state.totalSeconds / 60);
+            const seconds = state.totalSeconds % 60;
+            dom.timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            const sessionType = state.isWorkSession ? 'Tập trung' : 'Nghỉ ngơi';
+            const title = state.isPaused ? 'Đồng Hồ Học Tập' : `${dom.timerDisplay.textContent} | ${sessionType}`;
+            document.title = title;
+            dom.currentMethodDisplay.textContent = `${state.currentMethod.name} - ${sessionType} (${state.sessionCount}/${state.currentMethod.sessionsForLongBreak})`;
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            dom.currentDateEl.textContent = now.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+            dom.realTimeClockEl.textContent = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+        }
+
+        function toggleModal(modalElement, show) {
+            modalElement.classList.toggle('visible', show);
+        }
+
+        function showNotification(title, text) {
+            dom.modalTitle.textContent = title;
+            dom.modalText.textContent = text;
+            toggleModal(dom.notificationModal, true);
+        }
+
+        function toggleLayout(isTimerRunning) {
+            dom.methodSelectionColumn.classList.toggle('hidden', isTimerRunning);
+            dom.mainGrid.classList.toggle('md:grid-cols-2', !isTimerRunning);
+            dom.mainGrid.classList.toggle('justify-center', isTimerRunning);
+        }
+
+        async function toggleWakeLock(enable) {
+            if (enable) {
+                if ('wakeLock' in navigator && !state.wakeLock) {
+                    try {
+                        state.wakeLock = await navigator.wakeLock.request('screen');
+                    } catch (err) { console.error(`${err.name}, ${err.message}`); }
+                }
+            } else {
+                if (state.wakeLock) {
+                    await state.wakeLock.release();
+                    state.wakeLock = null;
+                }
+            }
+        }
+        
+        function startTimer() {
+            if (state.isPaused && state.totalSeconds >= 0) {
+                state.isPaused = false;
+                dom.toggleBtn.classList.add('active');
+                dom.playIcon.classList.add('hidden');
+                dom.pauseIcon.classList.remove('hidden');
+                toggleLayout(true);
+                if (dom.keepScreenOnToggle.checked) toggleWakeLock(true);
+                
+                state.timerInterval = setInterval(() => {
+                    state.totalSeconds--;
+                    updateDisplay();
+                    if (state.totalSeconds < 0) {
+                        handleSessionEnd();
+                    }
+                }, 1000);
+            }
+        }
+
+        function pauseTimer() {
+            clearInterval(state.timerInterval);
+            if (!state.isPaused) {
+                state.isPaused = true;
+                dom.toggleBtn.classList.remove('active');
+                dom.playIcon.classList.remove('hidden');
+                dom.pauseIcon.classList.add('hidden');
+                toggleLayout(false);
+                toggleWakeLock(false);
+            }
+        }
+
+        function handleSessionEnd() {
+            clearInterval(state.timerInterval);
+            state.isPaused = true;
+            synth.triggerAttackRelease(state.isWorkSession ? "C5" : "G4", "0.5");
+
+            if (state.isWorkSession) {
+                state.sessionCount++;
+                state.isWorkSession = false;
+                const isLongBreak = state.sessionCount % state.currentMethod.sessionsForLongBreak === 0 && state.sessionCount !== 0;
+                const breakMinutes = isLongBreak ? state.currentMethod.longBreakMinutes : state.currentMethod.breakMinutes;
+                state.totalSeconds = breakMinutes * 60;
+                showNotification('Hết giờ tập trung!', `Tuyệt vời! Giờ là lúc nghỉ ngơi ${breakMinutes} phút.`);
+                startTimer();
+            } else {
+                state.isWorkSession = true;
+                state.totalSeconds = state.currentMethod.minutes * 60;
+                showNotification('Hết giờ nghỉ!', 'Sẵn sàng cho phiên làm việc tiếp theo chưa?');
+                pauseTimer(); 
+            }
+            updateDisplay();
+        }
+
+        function resetCycle() {
+            pauseTimer();
+            state.isWorkSession = true;
+            state.sessionCount = 0;
+            state.totalSeconds = state.currentMethod.minutes * 60;
+            updateDisplay();
+        }
+
+        function selectMethod(method) {
+            state.currentMethod = method;
+            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.id === method.id));
+            dom.descriptionTitle.textContent = method.name;
+            dom.descriptionText.textContent = method.description;
+            resetCycle();
+        }
+
+        function renderPresets() {
+            dom.presetContainer.innerHTML = '';
+            studyMethods.forEach(method => {
+                const button = document.createElement('button');
+                button.dataset.id = method.id;
+                button.className = 'preset-btn dark-neumorphism-button p-2 text-sm font-semibold flex flex-col items-center justify-center';
+                button.innerHTML = `${method.icon}<span>${method.name}</span>`;
+                button.addEventListener('click', () => selectMethod(method));
+                dom.presetContainer.appendChild(button);
+            });
+        }
+        
+        function applyTheme(theme) {
+            // Remove all theme classes
+            document.body.classList.remove('theme-black', 'theme-transparent-light', 'theme-transparent-full');
+            
+            // Apply selected theme
+            if (theme === 'black') {
+                document.body.classList.add('theme-black');
+            } else if (theme === 'transparent-light') {
+                document.body.classList.add('theme-transparent-light');
+            } else if (theme === 'transparent-full') {
+                document.body.classList.add('theme-transparent-full');
+            }
+            // Default is gray theme (no class needed)
+            
+            localStorage.setItem('studyTimerTheme', theme);
+            
+            // Update settings theme buttons
+            document.querySelectorAll('.theme-settings-btn').forEach(btn => btn.classList.remove('selected'));
+            if (theme === 'black') dom.themeBlackSettingsBtn.classList.add('selected');
+            else if (theme === 'transparent-light') dom.themeTransparentLightSettingsBtn.classList.add('selected');
+            else if (theme === 'transparent-full') dom.themeTransparentFullSettingsBtn.classList.add('selected');
+            else dom.themeGraySettingsBtn.classList.add('selected');
+        }
+
+        function setTimerSize(size) {
+            dom.timerDisplay.style.fontSize = `${size}rem`;
+            localStorage.setItem('studyTimerSize', size);
+        }
+
+        function setBackground(url) {
+            document.body.style.backgroundImage = url ? `url(${url})` : 'none';
+            localStorage.setItem('studyTimerBg', url || '');
+        }
+
+        function setBgOpacity(opacity) {
+            if (opacity > 0) {
+                // Apply darkening effect by reducing opacity
+                dom.bgOverlay.style.opacity = 1 - (opacity * 0.8);
+            } else {
+                // No darkening effect
+                dom.bgOverlay.style.opacity = '1';
+            }
+            localStorage.setItem('studyTimerBgOpacity', opacity);
+        }
+
+         // --- Music Player Functions ---
+         function loadTrack(trackIndex) {
+             const track = musicTracks[trackIndex];
+             musicState.audio.src = track.file;
+             musicState.audio.volume = musicState.volume;
+             
+             // Update UI
+             dom.currentTrackTitle.textContent = track.title;
+             dom.currentTrackArtist.textContent = track.artist;
+             dom.currentTrackArt.style.backgroundImage = `url(${track.art})`;
+             
+             // Load audio metadata
+             musicState.audio.addEventListener('loadedmetadata', () => {
+                 musicState.duration = musicState.audio.duration;
+                 dom.totalTime.textContent = formatTime(musicState.duration);
+             });
+             
+             // Update progress
+             musicState.audio.addEventListener('timeupdate', () => {
+                 musicState.currentTime = musicState.audio.currentTime;
+                 updateProgress();
+             });
+             
+             // Handle track end
+             musicState.audio.addEventListener('ended', () => {
+                 nextTrack();
+             });
+         }
+         
+         function playMusic() {
+             if (musicState.audio.src) {
+                 musicState.audio.play();
+                 musicState.isPlaying = true;
+                 dom.playIconMusic.classList.add('hidden');
+                 dom.pauseIconMusic.classList.remove('hidden');
+             }
+         }
+         
+         function pauseMusic() {
+             musicState.audio.pause();
+             musicState.isPlaying = false;
+             dom.playIconMusic.classList.remove('hidden');
+             dom.pauseIconMusic.classList.add('hidden');
+         }
+         
+         function nextTrack() {
+             // If looping is enabled, stay on current track
+             if (musicState.isLooping) {
+                 loadTrack(musicState.currentTrackIndex);
+                 if (musicState.isPlaying) {
+                     playMusic();
+                 }
+                 return;
+             }
+             
+             // Otherwise, go to next track
+             musicState.currentTrackIndex = (musicState.currentTrackIndex + 1) % musicTracks.length;
+             loadTrack(musicState.currentTrackIndex);
+             if (musicState.isPlaying) {
+                 playMusic();
+             }
+         }
+         
+         function prevTrack() {
+             musicState.currentTrackIndex = (musicState.currentTrackIndex - 1 + musicTracks.length) % musicTracks.length;
+             loadTrack(musicState.currentTrackIndex);
+             if (musicState.isPlaying) {
+                 playMusic();
+             }
+         }
+         
+         function updateProgress() {
+             const progress = (musicState.currentTime / musicState.duration) * 100;
+             dom.progressBar.style.width = `${progress}%`;
+             dom.currentTime.textContent = formatTime(musicState.currentTime);
+         }
+         
+         function formatTime(seconds) {
+             if (isNaN(seconds)) return '0:00';
+             const mins = Math.floor(seconds / 60);
+             const secs = Math.floor(seconds % 60);
+             return `${mins}:${secs.toString().padStart(2, '0')}`;
+         }
+         
+         function setVolume(volume) {
+             musicState.volume = volume / 100;
+             musicState.audio.volume = musicState.volume;
+             localStorage.setItem('studyTimerMusicVolume', volume);
+         }
+         
+         function toggleLoop() {
+             musicState.isLooping = !musicState.isLooping;
+             dom.loopBtn.classList.toggle('active', musicState.isLooping);
+             
+             // Save loop preference
+             localStorage.setItem('studyTimerMusicLoop', musicState.isLooping);
+             
+             // Update button appearance
+             if (musicState.isLooping) {
+                 dom.loopBtn.style.color = 'var(--text-highlight)';
+             } else {
+                 dom.loopBtn.style.color = 'var(--text-secondary)';
+             }
+         }
+         
+         function downloadCurrentTrack() {
+             const currentTrack = musicTracks[musicState.currentTrackIndex];
+             
+             // Create a temporary link element
+             const link = document.createElement('a');
+             link.href = currentTrack.file;
+             link.download = `${currentTrack.title} - ${currentTrack.artist}.mp3`;
+             
+             // Append to body, click, and remove
+             document.body.appendChild(link);
+             link.click();
+             document.body.removeChild(link);
+         }
+         
+         function renderPlaylist() {
+             dom.playlist.innerHTML = '';
+             musicTracks.forEach((track, index) => {
+                 const trackItem = document.createElement('div');
+                 trackItem.className = `dark-neumorphism-button p-3 cursor-pointer playlist-item ${index === musicState.currentTrackIndex ? 'active' : ''}`;
+                 trackItem.innerHTML = `
+                     <div class="flex items-center space-x-3">
+                         <div class="w-8 h-8 rounded bg-cover bg-center" style="background-image: url(${track.art})"></div>
+                         <div class="flex-1 text-left">
+                             <div class="font-semibold" style="color: var(--text-primary);">${track.title}</div>
+                             <div class="text-xs" style="color: var(--text-secondary);">${track.artist}</div>
+                         </div>
+                     </div>
+                 `;
+                 trackItem.addEventListener('click', () => {
+                     musicState.currentTrackIndex = index;
+                     loadTrack(index);
+                     if (musicState.isPlaying) {
+                         playMusic();
+                     }
+                     renderPlaylist();
+                 });
+                 dom.playlist.appendChild(trackItem);
+             });
+         }
+
+
+        function initSettings() {
+            // Theme
+            applyTheme(localStorage.getItem('studyTimerTheme') || 'gray');
+            // Keep screen on
+            dom.keepScreenOnToggle.checked = localStorage.getItem('studyTimerKeepScreenOn') === 'true';
+            // Timer size
+            const timerSize = localStorage.getItem('studyTimerSize') || '7';
+            dom.timerSizeSlider.value = timerSize;
+            setTimerSize(timerSize);
+            // Background
+            setBackground(localStorage.getItem('studyTimerBg') || '');
+            // Background Opacity
+            const bgOpacity = localStorage.getItem('studyTimerBgOpacity') || '1';
+            dom.bgOpacitySlider.value = bgOpacity;
+            setBgOpacity(bgOpacity);
+            // Render preset BGs
+            dom.bgPresetContainer.innerHTML = '';
+            bgPresets.forEach(url => {
+                const bgBtn = document.createElement('button');
+                bgBtn.className = 'h-12 w-full rounded-lg bg-cover bg-center dark-neumorphism-button';
+                bgBtn.style.backgroundImage = `url(${url})`;
+                bgBtn.addEventListener('click', () => setBackground(url));
+                dom.bgPresetContainer.appendChild(bgBtn);
+            });
+            
+                         // Initialize music player
+             const savedVolume = localStorage.getItem('studyTimerMusicVolume') || '24';
+             dom.volumeSlider.value = savedVolume;
+             setVolume(savedVolume);
+             
+             // Restore loop state
+             const savedLoop = localStorage.getItem('studyTimerMusicLoop') === 'true';
+             musicState.isLooping = savedLoop;
+             if (savedLoop) {
+                 dom.loopBtn.classList.add('active');
+                 dom.loopBtn.style.color = 'var(--text-highlight)';
+             }
+             
+             loadTrack(0);
+             renderPlaylist();
+             
+             // Auto-play music when page loads
+             setTimeout(() => {
+                 playMusic();
+             }, 1000); // Start playing after 1 second to ensure everything is loaded
+        }
+
+        function initEventListeners() {
+            dom.toggleBtn.addEventListener('click', () => state.isPaused ? startTimer() : pauseTimer());
+            dom.skipBtn.addEventListener('click', handleSessionEnd);
+            dom.resetBtn.addEventListener('click', resetCycle);
+            dom.modalCloseBtn.addEventListener('click', () => toggleModal(dom.notificationModal, false));
+            dom.settingsBtn.addEventListener('click', () => toggleModal(dom.settingsModal, true));
+            dom.settingsCloseBtn.addEventListener('click', () => toggleModal(dom.settingsModal, false));
+
+            dom.keepScreenOnToggle.addEventListener('change', (e) => {
+                localStorage.setItem('studyTimerKeepScreenOn', e.target.checked);
+                if (!state.isPaused) toggleWakeLock(e.target.checked);
+            });
+            dom.timerSizeSlider.addEventListener('input', (e) => setTimerSize(e.target.value));
+            dom.bgOpacitySlider.addEventListener('input', (e) => setBgOpacity(e.target.value));
+            dom.setCustomBgBtn.addEventListener('click', () => setBackground(dom.customBgUrlInput.value));
+            
+            // Music event listeners
+            dom.musicBtn.addEventListener('click', () => toggleModal(dom.musicModal, true));
+            dom.musicCloseBtn.addEventListener('click', () => toggleModal(dom.musicModal, false));
+            dom.playPauseBtn.addEventListener('click', () => {
+                if (musicState.isPlaying) {
+                    pauseMusic();
+                } else {
+                    playMusic();
+                }
+            });
+            dom.nextBtn.addEventListener('click', nextTrack);
+            dom.prevBtn.addEventListener('click', prevTrack);
+            dom.volumeSlider.addEventListener('input', (e) => setVolume(e.target.value));
+            dom.loopBtn.addEventListener('click', toggleLoop);
+            dom.downloadBtn.addEventListener('click', downloadCurrentTrack);
+            
+            // Theme settings event listeners
+            dom.themeGraySettingsBtn.addEventListener('click', () => applyTheme('gray'));
+            dom.themeBlackSettingsBtn.addEventListener('click', () => applyTheme('black'));
+            dom.themeTransparentLightSettingsBtn.addEventListener('click', () => applyTheme('transparent-light'));
+            dom.themeTransparentFullSettingsBtn.addEventListener('click', () => applyTheme('transparent-full'));
+        }
+
+        // --- Initial Setup ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderPresets();
+            selectMethod(studyMethods[0]); 
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+            initSettings();
+            initEventListeners();
+        });
+
+    </script>
 </body>
-</html> 
+</html>
